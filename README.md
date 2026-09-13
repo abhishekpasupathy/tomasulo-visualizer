@@ -8,7 +8,7 @@ Built with **Next.js**, **React**, and **TypeScript**, with a fully pure, unit-t
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)](https://www.typescriptlang.org)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev)
 
-**[Source](https://github.com/abhishekpasupathy/tomasulo-visualizer)**
+**[Live Demo](https://tomasulo-visualizer.vercel.app)** · **[Source](https://github.com/abhishekpasupathy/tomasulo-visualizer)**
 
 ---
 
