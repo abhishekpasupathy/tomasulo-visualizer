@@ -51,17 +51,6 @@ function resolveOperand(
   return entry;
 }
 
-/**
- * Compute the effective integer address for LOAD/STORE.
- * src1 = offset (string number), src2 = base register.
- */
-function computeAddress(src1: string, src2: string, rf: RegisterFile): number | null {
-  const offset = parseInt(src1, 10);
-  const base = rf[src2];
-  if (!base || base.kind !== "value") return null; // base not ready
-  return offset + base.value;
-}
-
 // ─── STEP 1: Issue ────────────────────────────────────────────────────────────
 
 function doIssue(state: SimulatorState): SimulatorState {
@@ -91,17 +80,34 @@ function doIssue(state: SimulatorState): SimulatorState {
 
   if (instr.opcode === "LOAD") {
     // LOAD: src1 = offset, src2 = base register
-    const addr = computeAddress(instr.src1, instr.src2, registerFile);
-    rs.address = addr;
-    // Vj = effective address value (we use address field separately; Vj unused for LOAD)
-    rs.Vj = addr;
+    const offset = parseInt(instr.src1, 10);
+    const base = resolveOperand(instr.src2, registerFile);
+    rs.offset = offset;
+    if (base.kind === "value") {
+      rs.address = offset + base.value;
+      rs.Vj = rs.address; // Vj mirrors address for LOAD (used elsewhere for display)
+      rs.Qbase = null;
+    } else {
+      rs.address = null;
+      rs.Vj = null;
+      rs.Qbase = base.qi; // stall: base register not ready yet
+    }
     rs.Vk = null;
     rs.Qj = null;
     rs.Qk = null;
   } else if (instr.opcode === "STORE") {
     // STORE: src1 = offset, src2 = base; dest = value register to store
-    const addr = computeAddress(instr.src1, instr.src2, registerFile);
-    rs.address = addr;
+    const offset = parseInt(instr.src1, 10);
+    const base = resolveOperand(instr.src2, registerFile);
+    rs.offset = offset;
+    if (base.kind === "value") {
+      rs.address = offset + base.value;
+      rs.Qbase = null;
+    } else {
+      rs.address = null;
+      rs.Qbase = base.qi; // stall: base register not ready yet
+    }
+
     const valSrc = resolveOperand(instr.dest, registerFile);
     if (valSrc.kind === "value") {
       rs.Vj = valSrc.value;
@@ -114,6 +120,9 @@ function doIssue(state: SimulatorState): SimulatorState {
     rs.Qk = null;
   } else {
     // Arithmetic: src1 → Vj/Qj, src2 → Vk/Qk
+    rs.offset = null;
+    rs.Qbase = null;
+
     const op1 = resolveOperand(instr.src1, registerFile);
     if (op1.kind === "value") {
       rs.Vj = op1.value;
@@ -165,19 +174,16 @@ function doExecute(state: SimulatorState): SimulatorState {
   const { cycle } = s;
   const newLog: LogEntry[] = [];
 
-  // Determine the earliest-issued store instruction that has NOT yet computed
-  // its address — used to enforce simplified store ordering.
-  // (Not needed for the default program, but model is correct.)
-
   for (const rs of s.reservationStations) {
     if (!rs.busy || rs.resultReady) continue;
 
-    const operandsReady = rs.Qj === null && rs.Qk === null;
+    // Operands ready ALSO requires the base register (LOAD/STORE address) to
+    // be resolved — Qbase !== null means we're still waiting on a producer.
+    const operandsReady = rs.Qj === null && rs.Qk === null && rs.Qbase === null;
 
     if (!operandsReady) continue;
 
     // ── Textbook constraint: cannot start executing in the same cycle issued ──
-    // An RS is "just issued" this cycle if the instruction's issueCycle === cycle.
     const instr = s.instructions.find((i) => i.id === rs.instructionId)!;
     if (instr.issueCycle === cycle) continue;
 
@@ -198,9 +204,6 @@ function doExecute(state: SimulatorState): SimulatorState {
     rs.cyclesLeft! -= 1;
 
     if (rs.cyclesLeft! <= 0) {
-      // Execution done — compute result, but don't mark resultReady until NEXT cycle
-      // (textbook: WB cannot happen in the same cycle execution completes on the functional unit)
-      // We mark execEndCycle here but set resultReady=true so WB can happen next cycle.
       rs.cyclesLeft = 0;
       rs.resultReady = true;
       rs.result = computeResult(rs);
@@ -235,7 +238,6 @@ function computeResult(rs: ReservationStation): number {
     case "DIV":
       return k !== 0 ? j / k : 0;
     case "LOAD":
-      // Simulate a memory load: return a stable value derived from the address
       return rs.address !== null ? rs.address * 1.5 : 0;
     case "STORE":
       return Vj ?? 0; // value being stored
@@ -250,30 +252,23 @@ function doWriteback(state: SimulatorState): SimulatorState {
   const s = cloneState(state);
   const { cycle } = s;
 
-  // Collect all RS that have a result ready and are still busy.
-  // Textbook constraint: WB cannot happen in the same cycle execution finishes.
   const ready = s.reservationStations
     .filter((rs) => {
       if (!rs.busy || !rs.resultReady) return false;
-      // Exclude RS that just finished executing this cycle
       const instr = s.instructions.find((i) => i.id === rs.instructionId);
       if (instr?.execEndCycle === cycle) return false;
       return true;
     })
     .sort((a, b) => {
-      // Prefer ones already in cdbQueue, then by instruction order
       const aQueued = s.cdbQueue.includes(a.name);
       const bQueued = s.cdbQueue.includes(b.name);
       if (aQueued && !bQueued) return -1;
       if (!aQueued && bQueued) return 1;
-      // Both queued or neither — sort by instruction id (program order)
       return (a.instructionId ?? 999) - (b.instructionId ?? 999);
     });
 
   if (ready.length === 0) return s;
 
-
-  // Only one CDB broadcast per cycle
   const broadcaster = ready[0];
 
   const broadcast: CDBBroadcast = {
@@ -282,13 +277,12 @@ function doWriteback(state: SimulatorState): SimulatorState {
     instructionId: broadcaster.instructionId!,
   };
 
-  // Track any RS that couldn't broadcast (add to queue)
   const newQueue = ready
     .slice(1)
     .map((rs) => rs.name)
     .filter((name) => !s.cdbQueue.includes(name));
 
-  // ── CDB broadcast: update waiting RS ────────────────────────────────────────
+  // ── CDB broadcast: update waiting RS (operands + pending base registers) ────
   for (const rs of s.reservationStations) {
     if (rs.Qj === broadcast.tag) {
       rs.Vj = broadcast.value;
@@ -297,6 +291,12 @@ function doWriteback(state: SimulatorState): SimulatorState {
     if (rs.Qk === broadcast.tag) {
       rs.Vk = broadcast.value;
       rs.Qk = null;
+    }
+    if (rs.Qbase === broadcast.tag) {
+      const addr = (rs.offset ?? 0) + broadcast.value;
+      rs.address = addr;
+      if (rs.op === "LOAD") rs.Vj = addr;
+      rs.Qbase = null;
     }
   }
 
@@ -321,13 +321,14 @@ function doWriteback(state: SimulatorState): SimulatorState {
     Qj: null,
     Qk: null,
     address: null,
+    offset: null,
+    Qbase: null,
     cyclesLeft: null,
     resultReady: false,
     result: null,
     instructionId: null,
   });
 
-  // Remove from queue
   s.cdbQueue = [
     ...s.cdbQueue.filter((n) => n !== broadcaster.name),
     ...newQueue,
@@ -354,12 +355,10 @@ export function stepOnce(state: SimulatorState): SimulatorState {
   s.cycle = state.cycle + 1;
   s.started = true;
 
-  // Apply the three phases in order (each sees the results of the previous)
   s = doIssue(s);
   s = doExecute(s);
   s = doWriteback(s);
 
-  // Check done
   const allWrittenBack = s.instructions.every(
     (i) => i.writebackCycle !== null || i.issueCycle === null
   );
@@ -387,7 +386,6 @@ export function simulatorReducer(
       );
 
     case "SET_INSTRUCTIONS":
-      // Only allowed before simulation starts
       if (state.started) return state;
       return buildInitialState(action.payload, { ...DEFAULT_REGISTER_FILE });
 

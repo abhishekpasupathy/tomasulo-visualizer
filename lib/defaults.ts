@@ -35,10 +35,6 @@ export const LATENCY: Record<Opcode, number> = {
 
 // ─── Initial Register File ────────────────────────────────────────────────────
 
-/**
- * Pre-seeded register values for the classic 6-instruction example.
- * Float registers hold "nice" values so arithmetic produces readable numbers.
- */
 export const DEFAULT_REGISTER_FILE: RegisterFile = {
   R2: { kind: "value", value: 100 },
   R3: { kind: "value", value: 200 },
@@ -52,16 +48,6 @@ export const DEFAULT_REGISTER_FILE: RegisterFile = {
 
 // ─── Default 6-Instruction Program ───────────────────────────────────────────
 
-/**
- * Classic Patterson & Hennessy example showcasing RAW and WAR hazards.
- *
- *   LOAD  F6, 34(R2)          — independent
- *   LOAD  F2, 45(R3)          — independent
- *   MUL   F0, F2, F4          — RAW on F2 (from instr 2)
- *   SUB   F8, F6, F2          — RAW on F6 (from instr 1) and F2 (from instr 2)
- *   DIV   F10, F0, F6         — RAW on F0 (from instr 3) and F6 (from instr 1)
- *   ADD   F6, F8, F2          — WAR on F6 (instr 5 reads F6 before this writes it)
- */
 export const DEFAULT_INSTRUCTIONS: Instruction[] = [
   {
     id: 0,
@@ -147,6 +133,8 @@ export function buildInitialRS(): ReservationStation[] {
         Qj: null,
         Qk: null,
         address: null,
+        offset: null,
+        Qbase: null,
         cyclesLeft: null,
         resultReady: false,
         result: null,

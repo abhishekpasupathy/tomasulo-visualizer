@@ -30,6 +30,8 @@ export interface ReservationStation {
   Qj: string | null; // RS tag producing src1 (null = ready)
   Qk: string | null; // RS tag producing src2 (null = ready)
   address: number | null; // for LOAD/STORE: effective address once computed
+  offset: number | null; // for LOAD/STORE: parsed immediate offset (needed once base resolves)
+  Qbase: string | null; // RS tag producing the base register for LOAD/STORE (null = base ready)
   cyclesLeft: number | null; // cycles remaining in execution (null = not started)
   resultReady: boolean;
   result: number | null;
