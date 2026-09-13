@@ -1,0 +1,246 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap");
+@import "tailwindcss";
+
+
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
+:root {
+  --color-bg: #060911;
+  --color-surface: #0a0f1e;
+  --color-border: #1e2535;
+  --color-text: #e2e8f0;
+  --color-muted: #8b9ab8;
+  --color-accent: #3b82f6;
+  --color-green: #34d399;
+  --color-orange: #fb923c;
+  --color-cyan: #a5f3fc;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  margin: 0;
+}
+
+/* ─── Table helpers ────────────────────────────────────────────────────────── */
+.th {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #4d5e78;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.td {
+  padding: 0.45rem 0.75rem;
+  vertical-align: middle;
+}
+
+/* ─── Section title ────────────────────────────────────────────────────────── */
+.section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #4d5e78;
+  margin: 0;
+}
+
+/* ─── Buttons ──────────────────────────────────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.4rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  color: white;
+  border: 1px solid #3b82f6;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 0 12px #2563eb30;
+  white-space: nowrap;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  box-shadow: 0 0 20px #3b82f650;
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.4rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #064e3b, #065f46);
+  color: #6ee7b7;
+  border: 1px solid #34d399;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 0 12px #34d39920;
+  white-space: nowrap;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  box-shadow: 0 0 20px #34d39940;
+  transform: translateY(-1px);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.4rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background: transparent;
+  color: #8b9ab8;
+  border: 1px solid #1e2535;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: #0f1520;
+  color: #e2e8f0;
+  border-color: #2d3a50;
+}
+
+/* ─── Form inputs ──────────────────────────────────────────────────────────── */
+.input-cell {
+  background: #0b1223;
+  border: 1px solid #1e2535;
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.75rem;
+  color: #e2e8f0;
+  transition: border-color 0.15s;
+  outline: none;
+}
+
+.input-cell:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px #3b82f620;
+}
+
+select.input-cell {
+  cursor: pointer;
+}
+
+/* ─── Speed slider ─────────────────────────────────────────────────────────── */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: #1e2535;
+  outline: none;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #6ee7b7);
+  cursor: pointer;
+  box-shadow: 0 0 6px #3b82f660;
+  transition: box-shadow 0.15s;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 12px #3b82f680;
+}
+
+/* ─── Opcode badges ────────────────────────────────────────────────────────── */
+.opcode-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.opcode-ADD {
+  background: #1e3a5f;
+  color: #60a5fa;
+  border: 1px solid #2563eb40;
+}
+.opcode-SUB {
+  background: #2a1a40;
+  color: #a78bfa;
+  border: 1px solid #7c3aed40;
+}
+.opcode-MUL {
+  background: #1a3a28;
+  color: #34d399;
+  border: 1px solid #05966940;
+}
+.opcode-DIV {
+  background: #3a1a20;
+  color: #f87171;
+  border: 1px solid #dc262640;
+}
+.opcode-LOAD {
+  background: #1a2a3a;
+  color: #a5f3fc;
+  border: 1px solid #0891b240;
+}
+.opcode-STORE {
+  background: #2a2a1a;
+  color: #fcd34d;
+  border: 1px solid #d9770640;
+}
+
+/* ─── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #080c17;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e2535;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2d3a50;
+}
