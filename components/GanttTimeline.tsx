@@ -23,8 +23,8 @@ const PHASE_COLORS = {
 };
 
 function instrLabel(instr: Instruction): string {
-  if (instr.opcode === "LOAD" || instr.opcode === "STORE") {
-    return `${instr.opcode} ${instr.dest}, ${instr.src1}(${instr.src2})`;
+  if (instr.offset !== undefined && instr.offset !== null && instr.base) {
+    return `${instr.opcode} ${instr.dest}, ${instr.offset ?? instr.src1}(${instr.base ?? instr.src2})`;
   }
   return `${instr.opcode} ${instr.dest}, ${instr.src1}, ${instr.src2}`;
 }
