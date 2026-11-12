@@ -1,117 +1,47 @@
-// ─── Instruction ──────────────────────────────────────────────────────────────
 
-export type Opcode = "ADD" | "SUB" | "MUL" | "DIV" | "LOAD" | "STORE";
-
+import type { IsaConfig } from "./isa";
+import { DEFAULT_ISA } from "./isa";
 export interface Instruction {
-  id: number; // stable index in program order
-  opcode: Opcode;
-  dest: string; // e.g. "F0", "F6"
-  src1: string; // e.g. "F2", "34" (immediate offset for LOAD/STORE)
-  src2: string; // e.g. "F4", "R2" (base register for LOAD/STORE)
-
-  // Filled in as simulation progresses (null = not yet reached that phase)
-  issueCycle: number | null;
-  execStartCycle: number | null;
-  execEndCycle: number | null;
-  writebackCycle: number | null;
+ id:number; opcode:string; dest:string; src1:string; src2:string;
+ issueCycle:number|null; execStartCycle:number|null; execEndCycle:number|null; writebackCycle:number|null;
+ offset?:number|null; base?:string|null;
 }
-
-// ─── Reservation Station ──────────────────────────────────────────────────────
-
-export type RSPool = "ADD" | "MULT" | "LOAD";
-
+export type RSPool=string;
 export interface ReservationStation {
-  name: string; // e.g. "Add1", "Mult2", "Load3"
-  pool: RSPool;
-  busy: boolean;
-  op: Opcode | null;
-  Vj: number | null; // value of src1 (once known)
-  Vk: number | null; // value of src2 (once known)
-  Qj: string | null; // RS tag producing src1 (null = ready)
-  Qk: string | null; // RS tag producing src2 (null = ready)
-  address: number | null; // for LOAD/STORE: effective address once computed
-  offset: number | null; // for LOAD/STORE: parsed immediate offset (needed once base resolves)
-  Qbase: string | null; // RS tag producing the base register for LOAD/STORE (null = base ready)
-  cyclesLeft: number | null; // cycles remaining in execution (null = not started)
-  resultReady: boolean;
-  result: number | null;
-  instructionId: number | null; // which instruction occupies this RS
+ name:string; pool:RSPool; busy:boolean; op:string|null; evaluator:string|null;
+ Vj:number|null; Vk:number|null; Qj:string|null; Qk:string|null; address:number|null;
+ offset:number|null; Qbase:string|null; cyclesLeft:number|null; resultReady:boolean; result:number|null; instructionId:number|null;
 }
-
-// ─── Register File ─────────────────────────────────────────────────────────────
-
-// Each register is either a concrete value, or waiting on a RS (by tag).
-export type RegisterEntry =
-  | { kind: "value"; value: number }
-  | { kind: "pending"; qi: string };
-
-export type RegisterFile = Record<string, RegisterEntry>;
-
-// ─── CDB ──────────────────────────────────────────────────────────────────────
-
-export interface CDBBroadcast {
-  tag: string; // RS name that is broadcasting
-  value: number;
-  instructionId: number;
-}
-
-// ─── Log Entry ────────────────────────────────────────────────────────────────
-
-export type LogEventKind =
-  | "issued"
-  | "execStart"
-  | "execEnd"
-  | "writeback"
-  | "cdbStall"; // a second RS finished but couldn't broadcast (CDB busy)
-
-export interface LogEntry {
-  cycle: number;
-  kind: LogEventKind;
-  rsName: string;
-  instructionId: number;
-  detail?: string;
-}
-
-// ─── Simulator State ──────────────────────────────────────────────────────────
-
+export type RegisterEntry={kind:"value";value:number}|{kind:"pending";qi:string};
+export type RegisterFile=Record<string,RegisterEntry>;
+export interface CDBBroadcast {tag:string;value:number;instructionId:number}
+export type LogEventKind="issued"|"execStart"|"execEnd"|"writeback"|"cdbStall";
+export interface LogEntry {cycle:number;kind:LogEventKind;rsName:string;instructionId:number;detail?:string}
 export interface SimulatorState {
-  /** Program — editable before first step, read-only after */
-  instructions: Instruction[];
-
-  /** All reservation stations (ordered: Add1-3, Mult1-2, Load1-3) */
-  reservationStations: ReservationStation[];
-
-  /** Register file */
-  registerFile: RegisterFile;
-
-  /** Current cycle number (starts at 0 = before simulation; 1 after first step) */
-  cycle: number;
-
-  /**
-   * Index into `instructions` of the next instruction to be issued.
-   * Equals instructions.length when all have been issued.
-   */
-  issuePointer: number;
-
-  /**
-   * Queue of RS tags that finished this cycle but couldn't broadcast (CDB structural hazard).
-   * They'll broadcast in subsequent cycles.
-   */
-  cdbQueue: string[];
-
-  /** Event log — appended each cycle */
-  log: LogEntry[];
-
-  /** True once all instructions have written back */
-  done: boolean;
-
-  /** Whether the simulation has started (first step taken) */
-  started: boolean;
+ instructions:Instruction[]; reservationStations:ReservationStation[]; registerFile:RegisterFile;
+ cycle:number;issuePointer:number;cdbQueue:string[];log:LogEntry[];done:boolean;started:boolean;isa:IsaConfig;
 }
-
-// ─── Reducer Actions ──────────────────────────────────────────────────────────
-
-export type SimulatorAction =
-  | { type: "STEP" }
-  | { type: "RESET" }
-  | { type: "SET_INSTRUCTIONS"; payload: Instruction[] };
+export type SimulatorAction={type:"STEP"}|{type:"RESET"}|{type:"SET_INSTRUCTIONS";payload:Instruction[]}|{type:"SET_PROGRAM";payload:{instructions:Instruction[];isa:IsaConfig}};
+export const DEFAULT_REGISTER_FILE:RegisterFile={
+ R2:{kind:"value",value:100},R3:{kind:"value",value:200},
+ F0:{kind:"value",value:0},F2:{kind:"value",value:0},F4:{kind:"value",value:6},
+ F6:{kind:"value",value:0},F8:{kind:"value",value:0},F10:{kind:"value",value:0}
+};
+export const DEFAULT_INSTRUCTIONS:Instruction[]=[
+ {id:0,opcode:"LD",dest:"F6",src1:"34",src2:"R2",offset:34,base:"R2",issueCycle:null,execStartCycle:null,execEndCycle:null,writebackCycle:null},
+ {id:1,opcode:"LD",dest:"F2",src1:"45",src2:"R3",offset:45,base:"R3",issueCycle:null,execStartCycle:null,execEndCycle:null,writebackCycle:null},
+ {id:2,opcode:"MUL.D",dest:"F0",src1:"F2",src2:"F4",issueCycle:null,execStartCycle:null,execEndCycle:null,writebackCycle:null},
+ {id:3,opcode:"SUB.D",dest:"F8",src1:"F6",src2:"F2",issueCycle:null,execStartCycle:null,execEndCycle:null,writebackCycle:null},
+ {id:4,opcode:"DIV.D",dest:"F10",src1:"F0",src2:"F6",issueCycle:null,execStartCycle:null,execEndCycle:null,writebackCycle:null},
+ {id:5,opcode:"ADD.D",dest:"F6",src1:"F8",src2:"F2",issueCycle:null,execStartCycle:null,execEndCycle:null,writebackCycle:null}
+];
+export function buildInitialRS(isa:IsaConfig=DEFAULT_ISA):ReservationStation[]{
+ const out:ReservationStation[]=[];
+ for(const [unit,config] of Object.entries(isa.units)){
+  for(let i=1;i<=config.stations;i++)out.push({name:`${unit[0].toUpperCase()+unit.slice(1)}${i}`,pool:unit,busy:false,op:null,evaluator:null,Vj:null,Vk:null,Qj:null,Qk:null,address:null,offset:null,Qbase:null,cyclesLeft:null,resultReady:false,result:null,instructionId:null});
+ }
+ return out;
+}
+export function buildInitialState(instructions:Instruction[]=DEFAULT_INSTRUCTIONS,registerFile:RegisterFile=DEFAULT_REGISTER_FILE,isa:IsaConfig=DEFAULT_ISA):SimulatorState {
+ return {instructions:instructions.map(i=>({...i})),reservationStations:buildInitialRS(isa),registerFile:{...registerFile},cycle:0,issuePointer:0,cdbQueue:[],log:[],done:false,started:false,isa};
+}
