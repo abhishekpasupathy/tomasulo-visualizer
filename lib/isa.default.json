@@ -1,0 +1,15 @@
+{
+  "units": {"add":{"stations":3},"mul":{"stations":2},"load":{"stations":3}},
+  "opcodes": {
+    "ADD.D":{"unit":"add","format":"alu","latency":2,"evaluator":"add"},
+    "SUB.D":{"unit":"add","format":"alu","latency":2,"evaluator":"sub"},
+    "MUL.D":{"unit":"mul","format":"alu","latency":10,"evaluator":"mul"},
+    "DIV.D":{"unit":"mul","format":"alu","latency":20,"evaluator":"div"},
+    "LD":{"unit":"load","format":"load","latency":2,"evaluator":"load"},
+    "SD":{"unit":"load","format":"store","latency":2,"evaluator":"store"}
+  },
+  "formats":{"alu":["reg:dest","reg:src1","reg:src2"],"load":["reg:dest","mem"],"store":["reg:src1","mem"]},
+  "registerClasses":{"F":{"count":32},"R":{"count":32}},
+  "slotClasses":{"reg:dest":["F","R"],"reg:src1":["F","R"],"reg:src2":["F","R"]},
+  "memory":{"syntax":"offset(base)","addressRegisterClasses":["F","R"]}
+}
