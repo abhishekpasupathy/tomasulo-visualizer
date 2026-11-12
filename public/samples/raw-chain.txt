@@ -1,0 +1,5 @@
+# RAW dependency chain
+ADD.D F1, F2, F4
+MUL.D F3, F1, F2
+SUB.D F5, F3, F1
+DIV.D F7, F5, F2
